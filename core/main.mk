@@ -322,55 +322,42 @@ endif
 user_variant := $(filter user userdebug,$(TARGET_BUILD_VARIANT))
 enable_target_debugging := true
 tags_to_install :=
-ifneq (,$(user_variant))
-  # Target is secure in user builds.
-  ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=1
+# Target is secure in user builds.
+#ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=1
 
-  ifeq ($(user_variant),userdebug)
-    # Pick up some extra useful tools
-    tags_to_install += debug
+ADDITIONAL_DEFAULT_PROPERTIES += ro.adb.secure=0
+ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=0
 
-    # Enable Dalvik lock contention logging for userdebug builds.
-    ADDITIONAL_BUILD_PROPERTIES += dalvik.vm.lockprof.threshold=500
-  else
-    # Disable debugging in plain user builds.
-    enable_target_debugging :=
-  endif
+# Pick up some extra useful tools
+tags_to_install += debug
 
-  # Turn on Dalvik preoptimization for libdvm.so user builds, but only if not
-  # explicitly disabled and the build is running on Linux (since host
-  # Dalvik isn't built for non-Linux hosts).
-  ifeq (,$(WITH_DEXPREOPT))
-    ifeq ($(DALVIK_VM_LIB),libdvm.so)
-      ifeq ($(user_variant),user)
-        ifeq ($(HOST_OS),linux)
-          WITH_DEXPREOPT := true
-        endif
-      endif
+# Enable Dalvik lock contention logging for userdebug builds.
+ADDITIONAL_BUILD_PROPERTIES += dalvik.vm.lockprof.threshold=500
+
+# Turn on Dalvik preoptimization for user builds, but only if not
+# explicitly disabled and the build is running on Linux (since host
+# Dalvik isn't built for non-Linux hosts).
+ifneq (true,$(DISABLE_DEXPREOPT))
+  ifeq ($(user_variant),user)
+    ifeq ($(HOST_OS),linux)
+      WITH_DEXPREOPT := true
     endif
   endif
+endif
 
-  # Disallow mock locations by default for user builds
-  ADDITIONAL_DEFAULT_PROPERTIES += ro.allow.mock.location=0
+# Disallow mock locations by default for user builds
+ADDITIONAL_DEFAULT_PROPERTIES += ro.allow.mock.location=0
 
-else # !user_variant
-  # Turn on checkjni for non-user builds.
-  ADDITIONAL_BUILD_PROPERTIES += ro.kernel.android.checkjni=1
-  # Set device insecure for non-user builds.
-  ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=0
-  # Allow mock locations by default for non user builds
-  ADDITIONAL_DEFAULT_PROPERTIES += ro.allow.mock.location=1
-endif # !user_variant
 
-ifeq (true,$(strip $(enable_target_debugging)))
+#ifeq (true,$(strip $(enable_target_debugging)))
   # Target is more debuggable and adbd is on by default
   ADDITIONAL_DEFAULT_PROPERTIES += ro.debuggable=1
   # Include the debugging/testing OTA keys in this build.
   INCLUDE_TEST_OTA_KEYS := true
-else # !enable_target_debugging
-  # Target is less debuggable and adbd is off by default
-  ADDITIONAL_DEFAULT_PROPERTIES += ro.debuggable=0
-endif # !enable_target_debugging
+#else # !enable_target_debugging
+#  # Target is less debuggable and adbd is off by default
+#  ADDITIONAL_DEFAULT_PROPERTIES += ro.debuggable=0
+#endif # !enable_target_debugging
 
 ## eng ##
 
@@ -517,7 +504,7 @@ ifneq ($(dont_bother),true)
 # Can't use first-makefiles-under here because
 # --mindepth=2 makes the prunes not work.
 subdir_makefiles := \
-	$(shell build/tools/findleaves.py --prune=$(OUT_DIR) --prune=.repo --prune=.git $(subdirs) Android.mk)
+	$(shell build/tools/findleaves.py --prune=$(OUT_DIR) --prune=.repo --prune=.git --prune=.org $(subdirs) Android.mk)
 
 ifneq ($(HIDE_MAKEFILE_INCLUDES),y)
 $(foreach mk, $(subdir_makefiles), $(info including $(mk) ...)$(eval include $(mk)))
