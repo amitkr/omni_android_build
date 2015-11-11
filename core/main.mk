@@ -179,6 +179,14 @@ requires_openjdk := true
 endif
 endif
 
+ifeq ($(HOST_OS), linux)
+distro := $(shell lsb_release -si 2>&1)
+ifeq ($(distro), Fedora)
+$(info Falling back to SUN JDK)
+requires_openjdk := false
+endif
+endif
+
 
 # Check for the current jdk
 ifeq ($(requires_openjdk), true)
